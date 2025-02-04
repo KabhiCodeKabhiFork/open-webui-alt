@@ -6,7 +6,7 @@ from typing import Optional
 from pydantic import BaseModel
 import mimetypes
 from urllib.parse import quote
-
+import requests
 from open_webui.storage.provider import Storage
 
 from open_webui.models.files import (
@@ -38,6 +38,26 @@ router = APIRouter()
 # Upload File
 ############################
 
+def test_upload_file(file_path):
+    url = "http://127.0.0.1:8002/uploadfile/"
+    
+    # Check if the file_path is a file and not a directory
+    if not os.path.isfile(file_path):
+        print(f"Error: The path {file_path} is not a file.")
+        return
+    
+    try:
+        with open(file_path, 'rb') as f:
+            files = {'files': (f.name, f)}
+            response = requests.post(url, files=files)
+            response.raise_for_status()  # Raise an error for bad responses
+            print("Response:", response.json())
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+    except Exception as err:
+        print(f"An error occurred: {err}")
+
+
 
 @router.post("/", response_model=FileModelResponse)
 def upload_file(
@@ -53,7 +73,7 @@ def upload_file(
         name = filename
         filename = f"{id}_{filename}"
         contents, file_path = Storage.upload_file(file.file, filename)
-
+        test_upload_file(file_path)
         file_item = Files.insert_new_file(
             user.id,
             FileForm(
